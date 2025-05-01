@@ -117,6 +117,15 @@ func TestServeNegotiatingContent(t *testing.T) {
 			expectedHTTPStatus:  http.StatusOK,
 			expectedContentType: "application/json",
 		},
+		"accept prometheus": {
+			acceptHeader: []string{
+				"text/plain; version=0.0.4",
+			},
+			outputFormat:        "prometheus",
+			specFile:            filepath.Join("testdata", "passing.goss.yaml"),
+			expectedHTTPStatus:  http.StatusOK,
+			expectedContentType: "text/plain; version=0.0.4",
+		},
 		"accept header contains vendor-specific output format different from process-level": {
 			acceptHeader: []string{
 				"application/vnd.goss-rspecish",
