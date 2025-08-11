@@ -9,13 +9,15 @@ import (
 )
 
 type Package struct {
-	Title     string  `json:"title,omitempty" yaml:"title,omitempty"`
-	Meta      meta    `json:"meta,omitempty" yaml:"meta,omitempty"`
-	id        string  `json:"-" yaml:"-"`
-	Name      string  `json:"name,omitempty" yaml:"name,omitempty"`
-	Installed matcher `json:"installed" yaml:"installed"`
-	Versions  matcher `json:"versions,omitempty" yaml:"versions,omitempty"`
-	Skip      bool    `json:"skip,omitempty" yaml:"skip,omitempty"`
+	Title      string  `json:"title,omitempty" yaml:"title,omitempty"`
+	Meta       meta    `json:"meta,omitempty" yaml:"meta,omitempty"`
+	id         string  `json:"-" yaml:"-"`
+	Name       string  `json:"name,omitempty" yaml:"name,omitempty"`
+	Installed  matcher `json:"installed" yaml:"installed"`
+	Versions   matcher `json:"versions,omitempty" yaml:"versions,omitempty"`
+	Retry      bool    `json:"retry,omitempty" yaml:"retry,omitempty"`
+	RetryDelay int     `json:"retry_delay,omitempty" yaml:"retry_delay,omitempty"`
+	Skip       bool    `json:"skip,omitempty" yaml:"skip,omitempty"`
 }
 
 const (
@@ -45,20 +47,45 @@ func (p *Package) GetName() string {
 	}
 	return p.id
 }
+func (p *Package) GetRetry() bool      { return p.Retry }
+func (p *Package) GetRetryDelay() int  { return p.RetryDelay }
 
 func (p *Package) Validate(sys *system.System) []TestResult {
 	ctx := context.WithValue(context.Background(), idKey{}, p.ID())
 	skip := p.Skip
-	sysPkg := sys.NewPackage(ctx, p.GetName(), sys, util.Config{})
 
 	var results []TestResult
-	results = append(results, ValidateValue(p, "installed", p.Installed, sysPkg.Installed, skip))
+	
+	// Handle retry logic for installed check
+	if p.Retry {
+		results = append(results, ValidateValueWithRetry(p, "installed", p.Installed, 
+			func() (any, error) {
+				sysPkg := sys.NewPackage(ctx, p.GetName(), sys, util.Config{})
+				return sysPkg.Installed()
+			}, skip, p.RetryDelay))
+	} else {
+		sysPkg := sys.NewPackage(ctx, p.GetName(), sys, util.Config{})
+		results = append(results, ValidateValue(p, "installed", p.Installed, sysPkg.Installed, skip))
+	}
+	
 	if shouldSkip(results) {
 		skip = true
 	}
+	
+	// Handle retry logic for versions check
 	if p.Versions != nil {
-		results = append(results, ValidateValue(p, "version", p.Versions, sysPkg.Versions, skip))
+		if p.Retry {
+			results = append(results, ValidateValueWithRetry(p, "version", p.Versions,
+				func() (any, error) {
+					sysPkg := sys.NewPackage(ctx, p.GetName(), sys, util.Config{})
+					return sysPkg.Versions()
+				}, skip, p.RetryDelay))
+		} else {
+			sysPkg := sys.NewPackage(ctx, p.GetName(), sys, util.Config{})
+			results = append(results, ValidateValue(p, "version", p.Versions, sysPkg.Versions, skip))
+		}
 	}
+	
 	return results
 }
 

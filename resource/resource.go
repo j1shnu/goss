@@ -39,6 +39,11 @@ type ResourceRead interface {
 	GetMeta() meta
 }
 
+type Retryable interface {
+	GetRetry() bool
+	GetRetryDelay() int
+}
+
 type matcher any
 type meta map[string]any
 
