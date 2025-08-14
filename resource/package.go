@@ -15,7 +15,7 @@ type Package struct {
 	Name       string  `json:"name,omitempty" yaml:"name,omitempty"`
 	Installed  matcher `json:"installed" yaml:"installed"`
 	Versions   matcher `json:"versions,omitempty" yaml:"versions,omitempty"`
-	Retry      bool    `json:"retry,omitempty" yaml:"retry,omitempty"`
+	RetryCount int     `json:"retry_count,omitempty" yaml:"retry_count,omitempty"`
 	RetryDelay int     `json:"retry_delay,omitempty" yaml:"retry_delay,omitempty"`
 	Skip       bool    `json:"skip,omitempty" yaml:"skip,omitempty"`
 }
@@ -47,7 +47,7 @@ func (p *Package) GetName() string {
 	}
 	return p.id
 }
-func (p *Package) GetRetry() bool      { return p.Retry }
+func (p *Package) GetRetryCount() int  { return p.RetryCount }
 func (p *Package) GetRetryDelay() int  { return p.RetryDelay }
 
 func (p *Package) Validate(sys *system.System) []TestResult {
@@ -57,12 +57,12 @@ func (p *Package) Validate(sys *system.System) []TestResult {
 	var results []TestResult
 	
 	// Handle retry logic for installed check
-	if p.Retry {
+	if p.RetryCount > 0 {
 		results = append(results, ValidateValueWithRetry(p, "installed", p.Installed, 
 			func() (any, error) {
 				sysPkg := sys.NewPackage(ctx, p.GetName(), sys, util.Config{})
 				return sysPkg.Installed()
-			}, skip, p.RetryDelay))
+			}, skip, p.RetryCount, p.RetryDelay))
 	} else {
 		sysPkg := sys.NewPackage(ctx, p.GetName(), sys, util.Config{})
 		results = append(results, ValidateValue(p, "installed", p.Installed, sysPkg.Installed, skip))
@@ -74,12 +74,12 @@ func (p *Package) Validate(sys *system.System) []TestResult {
 	
 	// Handle retry logic for versions check
 	if p.Versions != nil {
-		if p.Retry {
+		if p.RetryCount > 0 {
 			results = append(results, ValidateValueWithRetry(p, "version", p.Versions,
 				func() (any, error) {
 					sysPkg := sys.NewPackage(ctx, p.GetName(), sys, util.Config{})
 					return sysPkg.Versions()
-				}, skip, p.RetryDelay))
+				}, skip, p.RetryCount, p.RetryDelay))
 		} else {
 			sysPkg := sys.NewPackage(ctx, p.GetName(), sys, util.Config{})
 			results = append(results, ValidateValue(p, "version", p.Versions, sysPkg.Versions, skip))

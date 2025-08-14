@@ -40,7 +40,7 @@ type ResourceRead interface {
 }
 
 type Retryable interface {
-	GetRetry() bool
+	GetRetryCount() int
 	GetRetryDelay() int
 }
 
