@@ -486,6 +486,8 @@ package:
     versions:
     - 2.2.15
     skip: false
+    retry_count: 1          # Enables retry mechanism when greater than 0 and retry number of time mentioned here
+    retry_delay: 180        # Delay (in seconds) before each retry
 ```
 
 !!! note
