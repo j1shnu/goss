@@ -132,7 +132,7 @@ func ValidateValueWithRetry(res ResourceRead, property string, expectedValue any
 		skipFunc := func() (any, error) { return nil, nil }
 		return ValidateValue(res, property, expectedValue, skipFunc, skip)
 	}
-	
+
 	maxRetries := retryCount + 1
 	if retryCount < 0 {
 		maxRetries = 1
@@ -141,28 +141,27 @@ func ValidateValueWithRetry(res ResourceRead, property string, expectedValue any
 	if delay <= 0 {
 		delay = 1 * time.Second // Default delay if not specified or invalid
 	}
-	
+
 	var lastResult TestResult
-	
+
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		actual, err := actualFunc()
-		
+
 		// Create a function that returns the current result
 		currentFunc := func() (any, error) { return actual, err }
 		result := ValidateValue(res, property, expectedValue, currentFunc, skip)
 		lastResult = result
-		
+
 		if result.Result == SUCCESS {
 			return result
 		}
-		
+
 		// If not the last attempt, wait before retrying
 		if attempt < maxRetries-1 {
-			fmt.Println("Retrying...")
 			time.Sleep(delay)
 		}
 	}
-	
+
 	return lastResult
 }
 
