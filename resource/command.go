@@ -22,6 +22,8 @@ type Command struct {
 	Stderr     matcher `json:"stderr" yaml:"stderr"`
 	Timeout    int     `json:"timeout" yaml:"timeout"`
 	Skip       bool    `json:"skip,omitempty" yaml:"skip,omitempty"`
+	RetryCount int     `json:"retry_count,omitempty" yaml:"retry_count,omitempty"`
+	RetryDelay int     `json:"retry_delay,omitempty" yaml:"retry_delay,omitempty"`
 }
 
 const (
@@ -47,6 +49,8 @@ func (c *Command) GetExec() string {
 	}
 	return c.id
 }
+func (c *Command) GetRetryCount() int { return c.RetryCount }
+func (c *Command) GetRetryDelay() int { return c.RetryDelay }
 
 func (c *Command) Validate(sys *system.System) []TestResult {
 	ctx := context.WithValue(context.Background(), idKey{}, c.ID())
@@ -56,18 +60,46 @@ func (c *Command) Validate(sys *system.System) []TestResult {
 		c.Timeout = 10000
 	}
 
-	var results []TestResult
-	sysCommand := sys.NewCommand(ctx, c.GetExec(), sys, util.Config{Timeout: time.Duration(c.Timeout) * time.Millisecond})
+	retryDelay := c.RetryDelay
+	if c.RetryCount > 0 && retryDelay == 0 {
+		retryDelay = 1 // Default 1 second delay
+	}
 
-	cExitStatus := deprecateAtoI(c.ExitStatus, fmt.Sprintf("%s: command.exit-status", c.ID()))
-	results = append(results, ValidateValue(c, "exit-status", cExitStatus, sysCommand.ExitStatus, skip))
-	if isSet(c.Stdout) {
-		results = append(results, ValidateValue(c, "stdout", c.Stdout, sysCommand.Stdout, skip))
+	maxAttempts := c.RetryCount + 1
+	var results []TestResult
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		sysCommand := sys.NewCommand(ctx, c.GetExec(), sys, util.Config{Timeout: time.Duration(c.Timeout) * time.Millisecond})
+
+		results = []TestResult{}
+		cExitStatus := deprecateAtoI(c.ExitStatus, fmt.Sprintf("%s: command.exit-status", c.ID()))
+		results = append(results, ValidateValue(c, "exit-status", cExitStatus, sysCommand.ExitStatus, skip))
+		if isSet(c.Stdout) {
+			results = append(results, ValidateValue(c, "stdout", c.Stdout, sysCommand.Stdout, skip))
+		}
+		if isSet(c.Stderr) {
+			results = append(results, ValidateValue(c, "stderr", c.Stderr, sysCommand.Stderr, skip))
+		}
+
+		if allTestsPassed(results) {
+			return results
+		}
+
+		if attempt < maxAttempts {
+			time.Sleep(time.Duration(retryDelay) * time.Second)
+		}
 	}
-	if isSet(c.Stderr) {
-		results = append(results, ValidateValue(c, "stderr", c.Stderr, sysCommand.Stderr, skip))
-	}
+
 	return results
+}
+
+func allTestsPassed(results []TestResult) bool {
+	for _, r := range results {
+		if r.Result != SUCCESS {
+			return false
+		}
+	}
+	return true
 }
 
 func NewCommand(sysCommand system.Command, config util.Config) (*Command, error) {
