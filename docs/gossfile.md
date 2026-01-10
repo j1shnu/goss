@@ -169,6 +169,8 @@ command:
     stderr: []
     timeout: 10000 # in milliseconds
     skip: false
+    retry_count: 1   # Enables retry mechanism when greater than 0; number of additional attempts
+    retry_delay: 10  # Delay (in seconds) before each retry attempt
 ```
 
 `stdout` and `stderr` can be a string or [pattern](#patterns)
@@ -495,7 +497,7 @@ package:
     - 2.2.15
     skip: false
     retry_count: 1   # Enables retry mechanism when greater than 0; number of additional attempts
-    retry_delay: 180 # Delay (in seconds) before each retry attempt
+    retry_delay: 10  # Delay (in seconds) before each retry attempt
 ```
 
 !!! note
