@@ -47,18 +47,18 @@ func (p *Package) GetName() string {
 	}
 	return p.id
 }
-func (p *Package) GetRetryCount() int  { return p.RetryCount }
-func (p *Package) GetRetryDelay() int  { return p.RetryDelay }
+func (p *Package) GetRetryCount() int { return p.RetryCount }
+func (p *Package) GetRetryDelay() int { return p.RetryDelay }
 
 func (p *Package) Validate(sys *system.System) []TestResult {
 	ctx := context.WithValue(context.Background(), idKey{}, p.ID())
 	skip := p.Skip
 
 	var results []TestResult
-	
+
 	// Handle retry logic for installed check
 	if p.RetryCount > 0 {
-		results = append(results, ValidateValueWithRetry(p, "installed", p.Installed, 
+		results = append(results, ValidateValueWithRetry(p, "installed", p.Installed,
 			func() (any, error) {
 				sysPkg := sys.NewPackage(ctx, p.GetName(), sys, util.Config{})
 				return sysPkg.Installed()
@@ -67,11 +67,11 @@ func (p *Package) Validate(sys *system.System) []TestResult {
 		sysPkg := sys.NewPackage(ctx, p.GetName(), sys, util.Config{})
 		results = append(results, ValidateValue(p, "installed", p.Installed, sysPkg.Installed, skip))
 	}
-	
+
 	if shouldSkip(results) {
 		skip = true
 	}
-	
+
 	// Handle retry logic for versions check
 	if p.Versions != nil {
 		if p.RetryCount > 0 {
@@ -85,7 +85,7 @@ func (p *Package) Validate(sys *system.System) []TestResult {
 			results = append(results, ValidateValue(p, "version", p.Versions, sysPkg.Versions, skip))
 		}
 	}
-	
+
 	return results
 }
 
