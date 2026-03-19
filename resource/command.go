@@ -13,17 +13,17 @@ import (
 )
 
 type Command struct {
-	Title      string  `json:"title,omitempty" yaml:"title,omitempty"`
-	Meta       meta    `json:"meta,omitempty" yaml:"meta,omitempty"`
-	id         string  `json:"-" yaml:"-"`
-	Exec       string  `json:"exec,omitempty" yaml:"exec,omitempty"`
-	ExitStatus matcher `json:"exit-status" yaml:"exit-status"`
-	Stdout     matcher `json:"stdout" yaml:"stdout"`
-	Stderr     matcher `json:"stderr" yaml:"stderr"`
-	Timeout    int     `json:"timeout" yaml:"timeout"`
-	Skip       bool    `json:"skip,omitempty" yaml:"skip,omitempty"`
-	RetryCount int     `json:"retry_count,omitempty" yaml:"retry_count,omitempty"`
-	RetryDelay int     `json:"retry_delay,omitempty" yaml:"retry_delay,omitempty"`
+	Title      string     `json:"title,omitempty" yaml:"title,omitempty"`
+	Meta       meta       `json:"meta,omitempty" yaml:"meta,omitempty"`
+	id         string     `json:"-" yaml:"-"`
+	Exec       string     `json:"exec,omitempty" yaml:"exec,omitempty"`
+	ExitStatus matcher    `json:"exit-status" yaml:"exit-status"`
+	Stdout     matcher    `json:"stdout" yaml:"stdout"`
+	Stderr     matcher    `json:"stderr" yaml:"stderr"`
+	Timeout    int        `json:"timeout" yaml:"timeout"`
+	Skip       bool       `json:"skip,omitempty" yaml:"skip,omitempty"`
+	RetryCount int        `json:"retry_count,omitempty" yaml:"retry_count,omitempty"`
+	RetryDelay RetryDelay `json:"retry_delay,omitempty" yaml:"retry_delay,omitempty"`
 }
 
 const (
@@ -49,8 +49,8 @@ func (c *Command) GetExec() string {
 	}
 	return c.id
 }
-func (c *Command) GetRetryCount() int { return c.RetryCount }
-func (c *Command) GetRetryDelay() int { return c.RetryDelay }
+func (c *Command) GetRetryCount() int        { return c.RetryCount }
+func (c *Command) GetRetryDelay() RetryDelay { return c.RetryDelay }
 
 func (c *Command) Validate(sys *system.System) []TestResult {
 	ctx := context.WithValue(context.Background(), idKey{}, c.ID())
@@ -60,15 +60,9 @@ func (c *Command) Validate(sys *system.System) []TestResult {
 		c.Timeout = 10000
 	}
 
-	retryDelay := c.RetryDelay
-	if c.RetryCount > 0 && retryDelay == 0 {
-		retryDelay = 1 // Default 1 second delay
-	}
-
-	maxAttempts := c.RetryCount + 1
 	var results []TestResult
 
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
+	runWithRetry(c.RetryCount, c.RetryDelay, func() bool {
 		sysCommand := sys.NewCommand(ctx, c.GetExec(), sys, util.Config{Timeout: time.Duration(c.Timeout) * time.Millisecond})
 
 		results = []TestResult{}
@@ -81,14 +75,8 @@ func (c *Command) Validate(sys *system.System) []TestResult {
 			results = append(results, ValidateValue(c, "stderr", c.Stderr, sysCommand.Stderr, skip))
 		}
 
-		if allTestsPassed(results) {
-			return results
-		}
-
-		if attempt < maxAttempts {
-			time.Sleep(time.Duration(retryDelay) * time.Second)
-		}
-	}
+		return allTestsPassed(results)
+	})
 
 	return results
 }

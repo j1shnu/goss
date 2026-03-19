@@ -11,18 +11,18 @@ import (
 )
 
 type DNS struct {
-	Title       string  `json:"title,omitempty" yaml:"title,omitempty"`
-	Meta        meta    `json:"meta,omitempty" yaml:"meta,omitempty"`
-	id          string  `json:"-" yaml:"-"`
-	Resolve     string  `json:"resolve,omitempty" yaml:"resolve,omitempty"`
-	Resolveable matcher `json:"resolveable,omitempty" yaml:"resolveable,omitempty"`
-	Resolvable  matcher `json:"resolvable" yaml:"resolvable"`
-	Addrs       matcher `json:"addrs,omitempty" yaml:"addrs,omitempty"`
-	Timeout     int     `json:"timeout" yaml:"timeout"`
-	Server      string  `json:"server,omitempty" yaml:"server,omitempty"`
-	RetryCount  int     `json:"retry_count,omitempty" yaml:"retry_count,omitempty"`
-	RetryDelay  int     `json:"retry_delay,omitempty" yaml:"retry_delay,omitempty"`
-	Skip        bool    `json:"skip,omitempty" yaml:"skip,omitempty"`
+	Title       string     `json:"title,omitempty" yaml:"title,omitempty"`
+	Meta        meta       `json:"meta,omitempty" yaml:"meta,omitempty"`
+	id          string     `json:"-" yaml:"-"`
+	Resolve     string     `json:"resolve,omitempty" yaml:"resolve,omitempty"`
+	Resolveable matcher    `json:"resolveable,omitempty" yaml:"resolveable,omitempty"`
+	Resolvable  matcher    `json:"resolvable" yaml:"resolvable"`
+	Addrs       matcher    `json:"addrs,omitempty" yaml:"addrs,omitempty"`
+	Timeout     int        `json:"timeout" yaml:"timeout"`
+	Server      string     `json:"server,omitempty" yaml:"server,omitempty"`
+	RetryCount  int        `json:"retry_count,omitempty" yaml:"retry_count,omitempty"`
+	RetryDelay  RetryDelay `json:"retry_delay,omitempty" yaml:"retry_delay,omitempty"`
+	Skip        bool       `json:"skip,omitempty" yaml:"skip,omitempty"`
 }
 
 const (
@@ -52,8 +52,8 @@ func (d *DNS) GetResolve() string {
 	}
 	return d.id
 }
-func (d *DNS) GetRetryCount() int { return d.RetryCount }
-func (d *DNS) GetRetryDelay() int { return d.RetryDelay }
+func (d *DNS) GetRetryCount() int        { return d.RetryCount }
+func (d *DNS) GetRetryDelay() RetryDelay { return d.RetryDelay }
 
 func (d *DNS) Validate(sys *system.System) []TestResult {
 	ctx := context.WithValue(context.Background(), idKey{}, d.ID())

@@ -9,15 +9,15 @@ import (
 )
 
 type Package struct {
-	Title      string  `json:"title,omitempty" yaml:"title,omitempty"`
-	Meta       meta    `json:"meta,omitempty" yaml:"meta,omitempty"`
-	id         string  `json:"-" yaml:"-"`
-	Name       string  `json:"name,omitempty" yaml:"name,omitempty"`
-	Installed  matcher `json:"installed" yaml:"installed"`
-	Versions   matcher `json:"versions,omitempty" yaml:"versions,omitempty"`
-	RetryCount int     `json:"retry_count,omitempty" yaml:"retry_count,omitempty"`
-	RetryDelay int     `json:"retry_delay,omitempty" yaml:"retry_delay,omitempty"`
-	Skip       bool    `json:"skip,omitempty" yaml:"skip,omitempty"`
+	Title      string     `json:"title,omitempty" yaml:"title,omitempty"`
+	Meta       meta       `json:"meta,omitempty" yaml:"meta,omitempty"`
+	id         string     `json:"-" yaml:"-"`
+	Name       string     `json:"name,omitempty" yaml:"name,omitempty"`
+	Installed  matcher    `json:"installed" yaml:"installed"`
+	Versions   matcher    `json:"versions,omitempty" yaml:"versions,omitempty"`
+	RetryCount int        `json:"retry_count,omitempty" yaml:"retry_count,omitempty"`
+	RetryDelay RetryDelay `json:"retry_delay,omitempty" yaml:"retry_delay,omitempty"`
+	Skip       bool       `json:"skip,omitempty" yaml:"skip,omitempty"`
 }
 
 const (
@@ -47,8 +47,8 @@ func (p *Package) GetName() string {
 	}
 	return p.id
 }
-func (p *Package) GetRetryCount() int { return p.RetryCount }
-func (p *Package) GetRetryDelay() int { return p.RetryDelay }
+func (p *Package) GetRetryCount() int        { return p.RetryCount }
+func (p *Package) GetRetryDelay() RetryDelay { return p.RetryDelay }
 
 func (p *Package) Validate(sys *system.System) []TestResult {
 	ctx := context.WithValue(context.Background(), idKey{}, p.ID())
